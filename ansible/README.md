@@ -1,6 +1,8 @@
 # environment
 ## setup an ansible 2.8 virtualenv
 ```
+sudo yum install python-pip
+sudo pip install virtualenv
 virtualenv ~/ansible-2.8
 . ~/ansible-2.8/bin/activate
 pip3 install -r requirements.txt
@@ -11,11 +13,16 @@ pip3 install -r requirements.txt
 ansible-galaxy install -r requirements.yml
 ```
 
+## clone the project 
+git clone git@github.com:treytabner/hosted-cluster-poc.git
+export REPO_DIR=$(pwd)
+cp $REPO_DIR/config.sh.example config.sh
+
 ## deploy cluster
 ```
 export NAMESPACE=hosted-example
 export KUBECONFIG=/path/to/kubeconfig
-ansible-playbook managed-master.yml
+ansible-playbook $REPO_DIR/ansible/managed-master.yml
 ```
 
 # todo
