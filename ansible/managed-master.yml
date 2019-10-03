@@ -1,0 +1,71 @@
+---
+- hosts: localhost
+  roles:
+  - kwoodson.yedit
+  tasks:
+  - name: set master namespace and kubeconfig
+    set_fact:
+      host_namespace: "{{ lookup('env', 'NAMESPACE') }}"
+      host_kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+  - name: create PKI and manifests
+    command: ./render-manifests.sh
+    args:
+      chdir: "{{ playbook_dir }}/../"
+  - name: remove openshift-apiserver-service cluster IP
+    yedit:
+      src: ../manifests/managed/openshift-apiserver-service.yaml
+      key: spec.clusterIP
+      state: absent
+  - name: remove kube-apiserver-service nodePort
+    yedit:
+      src: ../manifests/managed/kube-apiserver-service.yaml
+      key: spec.ports[0].nodePort
+      state: absent
+  - name: use temporary CVO image
+    yedit:
+      src: ../manifests/managed/cluster-version-operator-deployment.yaml
+      key: spec.template.spec.containers[0].image
+      value: quay.io/csrwng/release:hosted
+  - name: create {{ host_namespace }} namespace
+    k8s:
+      api_version: v1
+      kind: Namespace
+      kubeconfig: "{{ host_kubeconfig }}"
+      name: "{{ host_namespace }}"
+      state: present
+  - name: create master control plane
+    k8s:
+      definition: "{{ lookup('file', item) }}"
+      kubeconfig: "{{ host_kubeconfig }}"
+      namespace: "{{ host_namespace }}"
+      state: present
+    with_fileglob:
+    - "../manifests/managed/*.yaml"
+  # - name: wait for control plane to be ready
+  - name: fetch openshift-apiserver cluster IP
+    k8s_facts:
+      api_version: v1
+      kind: Service
+      name: openshift-apiserver
+      namespace: "{{ host_namespace }}"
+    register: openshift_apiserver
+  - name: set user openshift-apiserver ip
+    yedit:
+      src: ../manifests/user/openshift-apiserver-user-endpoint.yaml
+      key: subsets[0].addresses[0].ip
+      value: openshift_apiserver.resources[0].spec.clusterIP
+  - name: fetch kube-apiserver nodePort
+    k8s_facts:
+      api_version: v1
+      kind: Service
+      name: kube-apiserver
+      namespace: "{{ host_namespace }}"
+    register: kube_apiserver
+  #- name: set hosted cluster endpoint (hostname:nodeport) in admin kubeconfig, various in-cruiser yamls
+  - name: target cruiser and apply
+    k8s:
+      definition: "{{ lookup('file', item) }}"
+      kubeconfig: ../pki/admin.kubeconfig
+      state: present
+    with_fileglob:
+    - "../manifests/user/*.yaml"
