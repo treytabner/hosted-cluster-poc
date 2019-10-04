@@ -7,10 +7,11 @@
     set_fact:
       host_namespace: "{{ lookup('env', 'NAMESPACE') }}"
       host_kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+      repo_dir: "{{ lookup('env', 'REPO_DIR') }}"
   - name: create PKI and manifests
     command: ./render-manifests.sh
     args:
-      chdir: "{{ playbook_dir }}/../"
+      chdir: "{{ repo_dir }}/"
   - name: remove openshift-apiserver-service cluster IP
     yedit:
       src: ../manifests/managed/openshift-apiserver-service.yaml
