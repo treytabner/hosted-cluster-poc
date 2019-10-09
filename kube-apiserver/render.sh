@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eux
+set -eu
 
 source ../config.sh
 source ../lib/common.sh
@@ -58,4 +58,4 @@ rm -f config.yaml.rendered oauthMetadata.json
 
 export HYPERKUBE_IMAGE=$(${CONTAINER_CLI} run -ti --rm ${RELEASE_IMAGE} image hyperkube)
 envsubst < kube-apiserver-deployment.yaml > ../manifests/managed/kube-apiserver-deployment.yaml
-cp kube-apiserver-service.yaml ../manifests/managed
+envsubst < kube-apiserver-service.yaml > ../manifests/managed/kube-apiserver-service.yaml

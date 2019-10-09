@@ -1,10 +1,12 @@
 #!/bin/bash
 
-set -eux
+set -eu
 
 source ../config.sh
 
 cp *.yaml *.yml ../manifests/user
+
+export IMAGE_REGISTRY_HTTP_SECRET=$(openssl rand -hex 64)
 
 for i in *-config.yml; do
   envsubst < $i > ../manifests/user/$i
