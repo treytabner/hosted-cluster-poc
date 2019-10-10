@@ -1,0 +1,5 @@
+- hosts: localhost
+  tasks:
+  - command: ./install-openshift.sh
+    args:
+      chdir: "{{ playbook_dir }}/../"
